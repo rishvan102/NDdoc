@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="en" data-basepath="">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <title>NiceDay PDF Jar — Fast PDF tools in your browser ☀️</title>
+  <meta name="description" content="Create, merge, split, reorder, rotate, number, watermark, compress, export images, redact, and more — all locally in your browser. No upload needed." />
+  <link rel="canonical" href="https://example.com/" />
+  <meta name="theme-color" content="#ffb703" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#141414" media="(prefers-color-scheme: dark)">
+  <link rel="icon" href="icons/icon-192.png" />
+  <link rel="apple-touch-icon" href="icons/icon-192.png" />
+  <link rel="manifest" href="manifest.webmanifest" />
+
+  <!-- Preconnects -->
+  <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin />
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
+  <link rel="preconnect" href="https://unpkg.com" crossorigin />
+
+  <!-- Tailwind (CDN) — quick fix -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,typography,aspect-ratio,line-clamp"></script>
+
+
+  <!-- Tailwind build (your CSS) -->
+  <link rel="stylesheet" href="dist/styles.css" />
+
+  <style>
+    :root{
+      --brand:#ffb703; --brand-2:#fb8500;
+      --bg-a:#fff7ea; --bg-b:#fffdf7;
+      --ink:#111827; --muted:#6b7280;
+      color-scheme: light;
+    }
+    html,body{ height:100% }
+    body{
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, 'Helvetica Neue', Arial;
+      color:var(--ink);
+      background:
+        radial-gradient(1200px 600px at 20% -10%, var(--bg-a), transparent),
+        radial-gradient(1200px 600px at 80% 110%, var(--bg-a), transparent),
+        linear-gradient(180deg, var(--bg-b), #ffffff);
+      min-height:100dvh;
+    }
+    .pill{ background:linear-gradient(90deg,#ffd166,var(--brand)); }
+    .tool-card{ transition:transform .15s ease, box-shadow .15s ease; background:rgba(255,255,255,.82); backdrop-filter: blur(6px); }
+    .tool-card:hover{ transform:translateY(-2px); box-shadow:0 12px 30px rgba(0,0,0,.08); }
+    .grid-tools{ display:grid; grid-template-columns: repeat(auto-fill,minmax(300px,1fr)); gap:1.25rem; }
+    .tab{ border:1px solid #fde68a; background:#fffbea; padding:.5rem .85rem; border-radius:999px; white-space:nowrap; }
+    .tab.active{ background:#ffedd5; border-color:#fdba74; }
+    .hidden-by-filter{ display:none !important; }
+    .tool-title{ display:flex; align-items:center; gap:.5rem; }
+    .tool-title .emoji{ font-size:1.15rem; }
+
+    /* Modal */
+    .nd-overlay{ position:fixed; inset:0; background:rgba(0,0,0,.35); opacity:0; pointer-events:none; transition:opacity .18s ease; }
+    .nd-overlay.show{ opacity:1; pointer-events:auto; }
+    .nd-modal{ position:fixed; inset:0; display:grid; place-items:center; pointer-events:none; }
+    .nd-card{
+      width:min(92vw,420px); aspect-ratio:1/1;
+      background:linear-gradient(135deg,#fff,#fff8ec);
+      border:1px solid #ffe1b3; border-radius:24px; box-shadow:0 20px 50px rgba(0,0,0,.18);
+      transform:scale(.96); opacity:0; transition:transform .2s ease, opacity .2s ease; pointer-events:auto;
+      display:flex; flex-direction:column; align-items:center; justify-content:space-between; padding:22px; text-align:center;
+    }
+    .nd-modal.show .nd-card{ transform:scale(1); opacity:1; }
+    .nd-badge{ font-size:12px; padding:6px 10px; border-radius:999px; color:#0b3b2d; background:linear-gradient(135deg,#d7ffe9,#b9f3d0); border:1px solid #7bdba9; }
+    .nd-cta{ background:#111; color:#fff; padding:10px 14px; border-radius:12px; border:0; cursor:pointer; }
+    .nd-cta:hover{ filter:brightness(1.05); }
+    .nd-confetti{ font-size:40px; line-height:1; }
+
+    /* Reorder */
+    #reorderGrid .thumb { aspect-ratio:3/4; touch-action:none; user-select:none; -webkit-user-drag:none; }
+    #reorderGrid img { pointer-events:none; }
+    .drag-ghost{ opacity:.6; transform:scale(.98); }
+
+    /* Redact */
+    #redactStage { background:white; border-radius:12px; border:1px solid #e5e7eb; }
+    .sr-only{ position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0; }
+
+    footer{ color:var(--muted); }
+    footer a{ text-decoration:underline; text-underline-offset:2px; }
+  </style>
+
+  <!-- Optional subpath helper (used by app.js too if present) -->
+  <script>
+    (function(){
+      const baseAttr = document.documentElement.getAttribute('data-basepath') || "";
+      const base = window.__ND_BASE_PATH__ || baseAttr || "";
+      window.__ndPath__ = (p) => (base ? ("/" + base.replace(/^\/|\/$/g,"") + "/" + p.replace(/^\/+/,"")) : "/" + p.replace(/^\/+/,""));
+    })();
+  </script>
+</head>
+<body>
+  <a class="sr-only" href="#main">Skip to content</a>
+
+  <!-- Header -->
+  <header class="max-w-6xl mx-auto px-4 pt-8">
+    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+      <div class="flex items-center gap-3">
+        <div class="h-10 w-10 rounded-2xl flex items-center justify-center text-white font-bold text-xl" style="background:linear-gradient(135deg,var(--brand),var(--brand-2))" aria-hidden="true">📄</div>
+        <div>
+          <h1 class="text-2xl md:text-3xl font-bold">NiceDay PDF Jar</h1>
+          <p class="text-sm text-gray-600 -mt-1">by <span class="font-semibold">Nice Day</span> — docs & PDFs with sunshine ☀️</p>
+        </div>
+      </div>
+      <div class="flex items-center gap-3">
+        <span class="px-3 py-1 rounded-full text-sm pill text-black font-semibold">Always Positive Vibes</span>
+        <button id="installBtn" class="hidden px-3 py-1 rounded-full text-sm border border-amber-300 hover:bg-amber-50">Install App</button>
+      </div>
+    </div>
+
+    <div class="mt-6 p-5 rounded-2xl border bg-white/70">
+      <h2 class="text-xl font-semibold">Make beautiful things with your documents — and leave with a smile.</h2>
+      <p class="text-gray-600 mt-2">Write notes, turn text/markdown into PDFs, and do merge, split, reorder, rotate, number, watermark, compress, export images, and redact — all in your browser.</p>
+      <div id="moodQuote" class="inline-block mt-3 px-3 py-1 rounded-full text-xs text-white" style="background:linear-gradient(135deg,#8ecae6,#219ebc);">Loading inspiration…</div>
+    </div>
+  </header>
+
+  <!-- Search -->
+  <div class="max-w-6xl mx-auto px-4 mt-6 mb-4 flex flex-col md:flex-row md:items-center gap-3">
+    <div class="relative flex-1">
+      <label for="toolSearch" class="sr-only">Search tools</label>
+      <input id="toolSearch" type="search" inputmode="search" placeholder="Search tools (e.g., write, merge, rotate, watermark)…" class="w-full border rounded-xl px-4 py-2 pl-10" />
+      <span class="absolute left-3 top-2.5 text-gray-400" aria-hidden="true">🔎</span>
+    </div>
+  </div>
+
+  <!-- Tabs -->
+  <div class="max-w-6xl mx-auto px-4" id="main">
+    <div class="flex gap-2 mb-4 overflow-x-auto">
+      <button class="tab active" data-tab="docs" aria-pressed="true">Docs</button>
+      <button class="tab" data-tab="convert" aria-pressed="false">Convert</button>
+      <button class="tab" data-tab="organize" aria-pressed="false">Organize</button>
+      <button class="tab" data-tab="edit" aria-pressed="false">Edit</button>
+      <button class="tab" data-tab="secure" aria-pressed="false">Secure</button>
+      <div class="ml-auto text-xs text-gray-500 hidden sm:flex items-center gap-2">
+        <span>Tip: use the search box to find tools fast</span>
+      </div>
+    </div>
+
+    <!-- === DOCS === -->
+    <section class="tabpanel" data-tabpanel="docs" role="region" aria-label="Docs">
+      <div class="grid-tools">
+        <div class="tool-card rounded-2xl border p-5 md:col-span-2" data-tags="docs note write text pdf">
+          <h3 class="tool-title font-semibold text-lg mb-2"><span class="emoji" aria-hidden="true">📝</span> Write a Note → PDF</h3>
+          <p class="text-sm text-gray-600 mb-2">Type your note. We’ll wrap it nicely across A4 pages.</p>
+          <label for="noteInput" class="sr-only">Note content</label>
+          <textarea id="noteInput" rows="10" class="w-full border rounded-lg px-3 py-2 text-sm" placeholder="Type your note here…"></textarea>
+          <div class="flex gap-2 mt-3">
+            <input id="noteTitle" class="border rounded-lg px-3 py-2 text-sm flex-1" placeholder="Title (optional)" aria-label="Note title (optional)" />
+            <button id="noteBtn" class="px-4 py-2 bg-black text-white rounded-lg">Create PDF</button>
+          </div>
+          <p id="noteStatus" class="text-xs text-gray-500 mt-2" aria-live="polite"></p>
+        </div>
+
+        <div class="tool-card rounded-2xl border p-5" data-tags="docs text markdown md files pdf">
+          <h3 class="tool-title font-semibold text-lg mb-2"><span class="emoji" aria-hidden="true">📄</span> Text/Markdown files → PDF</h3>
+          <p class="text-sm text-gray-600 mb-2">Upload .txt / .md files; each becomes a section.</p>
+          <input id="txtFilesInput" type="file" accept=".txt,.md,text/plain,text/markdown" multiple class="block w-full text-sm" aria-label="Choose text or markdown files"/>
+          <button id="txtFilesBtn" class="mt-3 w-full bg-black text-white rounded-lg py-2">Create PDF</button>
+          <p id="txtFilesStatus" class="text-xs text-gray-500 mt-2" aria-live="polite"></p>
+        </div>
+
+        <!-- NEW: Document Viewer (Server) -->
+        <div class="tool-card rounded-2xl border p-5" data-tags="docs view preview server">
+          <h3 class="tool-title font-semibold text-lg mb-2"><span class="emoji" aria-hidden="true">👀</span> Document Viewer (Server)</h3>
+          <p class="text-sm text-gray-600 mb-2">Upload a PDF/Image and preview it inline (served by Flask).</p>
+          <input id="viewUpload" type="file" accept="application/pdf,image/*" class="block w-full text-sm mb-2" aria-label="Choose document to view"/>
+          <button id="viewBtn" class="w-full bg-black text-white rounded-lg py-2">Upload & Preview</button>
+          <p id="viewStatus" class="text-xs text-gray-500 mt-2" aria-live="polite"></p>
+          <iframe id="viewerFrame" class="w-full mt-3 rounded-lg border" style="min-height:520px; background:#fff;"></iframe>
+        </div>
+
+        <div class="tool-card rounded-2xl border p-5 opacity-60" data-tags="docs docx word convert">
+          <h3 class="tool-title font-semibold text-lg mb-2"><span class="emoji" aria-hidden="true">🧩</span> DOCX → PDF</h3>
+          <p class="text-sm text-gray-600 mb-2">Convert Word to PDF. (Needs extra library/server)</p>
+          <button class="w-full border rounded-lg py-2 cursor-not-allowed" aria-disabled="true">In progress</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- === CONVERT === -->
+    <section class="tabpanel hidden" data-tabpanel="convert" role="region" aria-label="Convert">
+      <div class="grid-tools">
+        <div class="tool-card rounded-2xl border p-5" data-tags="convert images">
+          <h3 class="tool-title font-semibold text-lg mb-2"><span class="emoji" aria-hidden="true">🖼️</span> Images → PDF</h3>
+          <p class="text-sm text-gray-600 mb-2">Turn JPG/PNG images into a single PDF.</p>
+          <input id="imgInput" type="file" accept="image/*" multiple class="block w-full text-sm" aria-label="Choose images"/>
+          <button id="imgBtn" class="mt-3 w-full bg-black text-white rounded-lg py-2">Create PDF & Download</button>
+          <p id="imgStatus" class="text-xs text-gray-500 mt-2" aria-live="polite"></p>
+        </div>
+
+        <div class="tool-card rounded-2xl border p-5" data-tags="convert pdf images export png jpg">
+          <h3 class="tool-title font-semibold text-lg mb-2"><span class="emoji" aria-hidden="true">🔁</span> PDF → Images (ZIP)</h3>
+          <p class="text-sm text-gray-600 mb-2">Export each page as PNG or JPG. We’ll bundle them into a .zip.</p>
+          <input id="pdf2imgInput" type="file" accept="application/pdf" class="block w-full text-sm mb-2" aria-label="Choose PDF" />
+          <div class="grid grid-cols-2 gap-2">
+            <select id="pdf2imgFormat" class="border rounded-lg px-3 py-2 text-sm">
+              <option value="png">PNG</option>
+              <option value="jpeg">JPG</option>
+            </select>
+            <select id="pdf2imgScale" class="border rounded-lg px-3 py-2 text-sm">
+              <option value="1">Scale 1x</option>
+              <option value="1.5">Scale 1.5x</option>
+              <option value="2">Scale 2x</option>
+            </select>
+          </div>
+          <button id="pdf2imgBtn" class="mt-3 w-full bg-black text-white rounded-lg py-2">Export Images (ZIP)</button>
+          <p id="pdf2imgStatus" class="text-xs text-gray-500 mt-2" aria-live="polite"></p>
+        </div>
+
+        <div class="tool-card rounded-2xl border p-5" data-tags="convert compress reduce size optimize">
+          <h3 class="tool-title font-semibold text-lg mb-2"><span class="emoji" aria-hidden="true">🪄</span> Compress PDF</h3>
+          <p class="text-sm text-gray-600 mb-2">Rasterizes pages to JPEG. Lower quality/scale = smaller file.</p>
+          <input id="cmpInput" type="file" accept="application/pdf" class="block w-full text-sm mb-2" aria-label="Choose PDF" />
+          <div class="grid grid-cols-3 gap-2">
+            <select id="cmpScale" class="border rounded-lg px-3 py-2 text-sm">
+              <option value="1">Scale 1.0</option><option value="0.8">0.8</option><option value="0.6">0.6</option><option value="0.5">0.5</option>
+            </select>
+            <input id="cmpQuality" type="number" min="0.3" max="0.95" step="0.05" value="0.8" class="border rounded-lg px-3 py-2 text-sm" />
+            <select id="cmpFormat" class="border rounded-lg px-3 py-2 text-sm">
+              <option value="jpeg">JPG</option><option value="png">PNG (bigger)</option>
+            </select>
+          </div>
+          <button id="cmpBtn" class="mt-3 w-full bg-black text-white rounded-lg py-2">Compress & Download</button>
+          <p id="cmpStatus" class="text-xs text-gray-500 mt-2" aria-live="polite"></p>
+        </div>
+
+        <!-- NEW: Document Scanner (Server) -->
+        <div class="tool-card rounded-2xl border p-5" data-tags="convert scan ocr deskew threshold server">
+          <h3 class="tool-title font-semibold text-lg mb-2"><span class="emoji" aria-hidden="true">🖨️</span> Document Scanner (Server)</h3>
+          <p class="text-sm text-gray-600 mb-2">Upload images or a single PDF. We’ll deskew, clean, and optionally OCR on the server.</p>
+          <input id="scanInput" type="file" accept="application/pdf,image/*" multiple class="block w-full text-sm mb-2" aria-label="Choose files for scanning"/>
+          <div class="grid grid-cols-3 gap-2 text-sm">
+            <label class="flex items-center gap-2 border rounded-lg px-3 py-2">
+              <input id="scanDeskew" type="checkbox" checked /> Deskew
+            </label>
+            <label class="flex items-center gap-2 border rounded-lg px-3 py-2">
+              <input id="scanThresh" type="checkbox" checked /> Threshold
+            </label>
+            <label class="flex items-center gap-2 border rounded-lg px-3 py-2">
+              <input id="scanOCR" type="checkbox" /> OCR
+            </label>
+          </div>
+          <button id="scanBtn" class="mt-3 w-full bg-black text-white rounded-lg py-2">Scan & Download</button>
+          <p id="scanStatus" class="text-xs text-gray-500 mt-2" aria-live="polite"></p>
+        </div>
+      </div>
+    </section>
+
+    <!-- === ORGANIZE === -->
+    <section class="tabpanel hidden" data-tabpanel="organize" role="region" aria-label="Organize">
+      <div class="grid-tools">
+        <div class="tool-card rounded-2xl border p-5" data-tags="organize merge combine">
+          <h3 class="tool-title font-semibold text-lg mb-2"><span class="emoji" aria-hidden="true">➕</span> Merge PDFs</h3>
+          <p class="text-sm text-gray-600 mb-3">Combine multiple PDFs into one.</p>
+          <input id="mergeInput" type="file" multiple accept="application/pdf" class="block w-full text-sm" aria-label="Choose PDFs to merge" />
+          <button id="mergeBtn" class="mt-3 w-full bg-black text-white rounded-lg py-2">Merge & Download</button>
+          <p id="mergeStatus" class="text-xs text-gray-500 mt-2" aria-live="polite"></p>
+        </div>
+
+        <div class="tool-card rounded-2xl border p-5" data-tags="organize split extract">
+          <h3 class="tool-title font-semibold text-lg mb-2"><span class="emoji" aria-hidden="true">✂️</span> Split PDF</h3>
+          <p class="text-sm text-gray-600 mb-2">Ranges (e.g., 1-3,5,9-10). Each range = separate file.</p>
+          <input id="splitInput" type="file" accept="application/pdf" class="block w-full text-sm mb-2" aria-label="Choose PDF to split" />
+          <input id="splitRanges" placeholder="1-3,5" class="w-full border rounded-lg px-3 py-2 text-sm" aria-label="Page ranges to split"/>
+          <button id="splitBtn" class="mt-3 w-full bg-black text-white rounded-lg py-2">Split & Download</button>
+          <p id="splitStatus" class="text-xs text-gray-500 mt-2" aria-live="polite"></p>
+        </div>
+
+        <div class="tool-card rounded-2xl border p-5 md:col-span-2" data-tags="organize reorder arrange">
+          <h3 class="tool-title font-semibold text-lg mb-2"><span class="emoji" aria-hidden="true">📑</span> Reorder Pages (Drag & Drop)</h3>
+          <p class="text-sm text-gray-600 mb-2">Upload a PDF, then drag thumbnails to reorder.</p>
+          <input id="reorderDnDInput" type="file" accept="application/pdf" class="block w-full text-sm mb-3" aria-label="Choose PDF to reorder" />
+          <div id="reorderGrid" class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-3 min-h-[120px]" aria-live="polite"></div>
+          <div class="flex gap-2 mt-3">
+            <button id="reorderReset" class="px-3 py-2 border rounded-lg">Reset Order</button>
+            <button id="reorderExport" class="px-3 py-2 bg-black text-white rounded-lg">Export Reordered PDF</button>
+          </div>
+          <p id="reorderDnDStatus" class="text-xs text-gray-500 mt-2" aria-live="polite"></p>
+        </div>
+      </div>
+    </section>
+
+    <!-- === EDIT === -->
+    <section class="tabpanel hidden" data-tabpanel="edit" role="region" aria-label="Edit">
+      <div class="grid-tools">
+        <div class="tool-card rounded-2xl border p-5" data-tags="edit rotate orientation">
+          <h3 class="tool-title font-semibold text-lg mb-2"><span class="emoji" aria-hidden="true">🔄</span> Rotate Pages</h3>
+          <p class="text-sm text-gray-600 mb-2">Ranges + angle (90/180/270).</p>
+          <input id="rotInput" type="file" accept="application/pdf" class="block w-full text-sm mb-2" aria-label="Choose PDF to rotate" />
+          <div class="flex gap-2">
+            <input id="rotRanges" placeholder="1-3,7" class="w-full border rounded-lg px-3 py-2 text-sm" aria-label="Page ranges to rotate"/>
+            <input id="rotAngle" type="number" placeholder="90" value="90" class="w-24 border rounded-lg px-3 py-2 text-sm" aria-label="Rotation angle"/>
+          </div>
+          <button id="rotBtn" class="mt-3 w-full bg-black text-white rounded-lg py-2">Rotate & Download</button>
+          <p id="rotStatus" class="text-xs text-gray-500 mt-2" aria-live="polite"></p>
+        </div>
+
+        <div class="tool-card rounded-2xl border p-5" data-tags="edit delete remove">
+          <h3 class="tool-title font-semibold text-lg mb-2"><span class="emoji" aria-hidden="true">🧹</span> Delete Pages</h3>
+          <p class="text-sm text-gray-600 mb-2">Pages to remove (e.g., 2,4-6).</p>
+          <input id="delInput" type="file" accept="application/pdf" class="block w-full text-sm mb-2" aria-label="Choose PDF to delete pages from" />
+          <input id="delList" placeholder="2,4-6" class="w-full border rounded-lg px-3 py-2 text-sm" aria-label="Pages to delete"/>
+          <button id="delBtn" class="mt-3 w-full bg-black text-white rounded-lg py-2">Delete & Download</button>
+          <p id="delStatus" class="text-xs text-gray-500 mt-2" aria-live="polite"></p>
+        </div>
+
+        <div class="tool-card rounded-2xl border p-5" data-tags="edit extract keep">
+          <h3 class="tool-title font-semibold text-lg mb-2"><span class="emoji" aria-hidden="true">📤</span> Extract Pages</h3>
+          <p class="text-sm text-gray-600 mb-2">Keep only these pages (e.g., 1-3,9).</p>
+          <input id="extInput" type="file" accept="application/pdf" class="block w-full text-sm mb-2" aria-label="Choose PDF to extract pages" />
+          <input id="extList" placeholder="1-3,9" class="w-full border rounded-lg px-3 py-2 text-sm" aria-label="Pages to keep"/>
+          <button id="extBtn" class="mt-3 w-full bg-black text-white rounded-lg py-2">Extract & Download</button>
+          <p id="extStatus" class="text-xs text-gray-500 mt-2" aria-live="polite"></p>
+        </div>
+
+        <div class="tool-card rounded-2xl border p-5" data-tags="edit page numbers footer header">
+          <h3 class="tool-title font-semibold text-lg mb-2"><span class="emoji" aria-hidden="true">🔢</span> Add Page Numbers</h3>
+          <p class="text-sm text-gray-600 mb-2">Position + margin.</p>
+          <input id="numInput" type="file" accept="application/pdf" class="block w-full text-sm mb-2" aria-label="Choose PDF to number" />
+          <div class="grid grid-cols-2 gap-2">
+            <select id="numPos" class="border rounded-lg px-3 py-2 text-sm">
+              <option value="br">Bottom Right</option><option value="bc">Bottom Center</option>
+              <option value="bl">Bottom Left</option><option value="tr">Top Right</option>
+              <option value="tc">Top Center</option><option value="tl">Top Left</option>
+            </select>
+            <input id="numMargin" type="number" value="24" class="border rounded-lg px-3 py-2 text-sm" />
+          </div>
+          <button id="numBtn" class="mt-3 w-full bg-black text-white rounded-lg py-2">Number & Download</button>
+          <p id="numStatus" class="text-xs text-gray-500 mt-2" aria-live="polite"></p>
+        </div>
+
+        <div class="tool-card rounded-2xl border p-5" data-tags="edit watermark branding">
+          <h3 class="tool-title font-semibold text-lg mb-2"><span class="emoji" aria-hidden="true">💧</span> Add Watermark</h3>
+          <p class="text-sm text-gray-600 mb-2">Large diagonal text watermark.</p>
+          <input id="wmInput" type="file" accept="application/pdf" class="block w-full text-sm mb-2" aria-label="Choose PDF to watermark" />
+          <input id="wmText" placeholder="CONFIDENTIAL" class="w-full border rounded-lg px-3 py-2 text-sm mb-2" aria-label="Watermark text"/>
+          <div class="grid grid-cols-3 gap-2">
+            <input id="wmSize" type="number" value="64" class="border rounded-lg px-3 py-2 text-sm" />
+            <input id="wmAngle" type="number" value="45" class="border rounded-lg px-3 py-2 text-sm" />
+            <input id="wmAlpha" type="number" value="0.15" step="0.05" class="border rounded-lg px-3 py-2 text-sm" />
+          </div>
+          <p class="text-xs text-gray-500 mt-1">Size | Angle° | Opacity (0-1)</p>
+          <button id="wmBtn" class="mt-3 w-full bg-black text-white rounded-lg py-2">Watermark & Download</button>
+          <p id="wmStatus" class="text-xs text-gray-500 mt-2" aria-live="polite"></p>
+        </div>
+      </div>
+    </section>
+
+
+    <!-- === SECURE === -->
+<section class="tabpanel hidden" data-tabpanel="secure" role="region" aria-label="Secure">
+  <div class="grid-tools">
+
+    <!-- Strip Metadata -->
+    <div class="tool-card rounded-2xl border p-5" data-tags="secure metadata privacy remove info">
+      <h3 class="tool-title font-semibold text-lg mb-2"><span class="emoji" aria-hidden="true">🧼</span> Strip Metadata</h3>
+      <p class="text-sm text-gray-600 mb-2">Make a clean copy without document metadata.</p>
+      <input id="metaInput" type="file" accept="application/pdf" class="block w-full text-sm mb-2" aria-label="Choose PDF to clean" />
+      <button id="metaBtn" class="mt-3 w-full bg-black text-white rounded-lg py-2">Create Clean Copy</button>
+      <p id="metaStatus" class="text-xs text-gray-500 mt-2" aria-live="polite"></p>
+    </div>
+
+    <!-- Redact -->
+    <div class="tool-card rounded-2xl border p-5 md:col-span-2" data-tags="secure redact hide black box">
+      <h3 class="tool-title font-semibold text-lg mb-2"><span class="emoji" aria-hidden="true">🕶️</span> Redact (Draw Boxes)</h3>
+      <p class="text-sm text-gray-600 mb-2">Load a PDF, draw black boxes over sensitive areas, then apply.</p>
+      <input id="redactInput" type="file" accept="application/pdf" class="block w-full text-sm mb-3" aria-label="Choose PDF to redact" />
+      <div class="flex items-center justify-between mb-2 text-sm text-gray-600">
+        <span id="redInfo">No file loaded</span>
+        <div class="flex gap-2">
+          <button id="redPrev" class="px-3 py-1 border rounded-lg">Prev</button>
+          <button id="redNext" class="px-3 py-1 border rounded-lg">Next</button>
+          <button id="redClear" class="px-3 py-1 border rounded-lg">Clear Page</button>
+        </div>
+      </div>
+      <canvas id="redactStage" class="w-full max-w-full" width="600" height="800" aria-label="Redaction canvas"></canvas>
+      <div class="flex gap-2 mt-3">
+        <button id="redApply" class="px-3 py-2 bg-black text-white rounded-lg flex-1">Apply Redactions & Download</button>
+      </div>
+      <p id="redStatus" class="text-xs text-gray-500 mt-2" aria-live="polite"></p>
+    </div>
+
+  </div>
+</section>
+
+  </div>
+
+  <!-- Motivator Modal -->
+  <div id="ndOverlay" class="nd-overlay" aria-hidden="true"></div>
+  <div id="ndModal" class="nd-modal" role="dialog" aria-modal="true" aria-labelledby="ndTitle" aria-describedby="ndMsg" style="visibility:hidden;">
+    <div class="nd-card">
+      <div class="nd-badge">Nice Day Boost</div>
+      <div class="nd-confetti" aria-hidden="true">🎉</div>
+      <div>
+        <h3 id="ndTitle" class="text-lg font-semibold">Great job!</h3>
+        <p id="ndMsg" class="text-sm text-gray-700 mt-1">You did it. Keep the momentum going.</p>
+      </div>
+      <button id="ndClose" class="nd-cta">Thanks!</button>
+    </div>
+  </div>
+
+  <footer class="max-w-6xl mx-auto px-4 mt-10 pb-12 text-sm">
+    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+      <div>© <span id="yr"></span> Nice Day. All rights reserved.</div>
+      <nav class="flex gap-4">
+        <a href="#" aria-disabled="true">Privacy</a>
+        <a href="#" aria-disabled="true">Terms</a>
+        <a href="#" aria-disabled="true">Contact</a>
+      </nav>
+    </div>
+  </footer>
+
+  <!-- Libs -->
+  <script defer src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js" crossorigin="anonymous"></script>
+  <script defer src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js" crossorigin="anonymous"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js" crossorigin="anonymous"></script>
+
+  <!-- App (bundles pdf-lib loader, fontkit, worker config, and all handlers) -->
+  <script defer src="app.js"></script>
+</body>
+</html>

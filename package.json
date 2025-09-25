@@ -1,0 +1,15 @@
+{
+  "name": "nice-day-pdf-jar",
+  "private": true,
+  "scripts": {
+    "build:css": "tailwindcss -i ./src/input.css -o ./dist/styles.css --minify",
+    "watch:css": "tailwindcss -i ./src/input.css -o ./dist/styles.css --watch",
+    "start": "npx serve -p 3000 ."
+  },
+  "devDependencies": {
+    "tailwindcss": "^3.4.10"
+  },
+  "dependencies": {
+    "@fontsource/noto-sans": "^5.2.10"
+  }
+}
